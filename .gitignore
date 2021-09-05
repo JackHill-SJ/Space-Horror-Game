@@ -2,13 +2,13 @@
 #
 # Get latest from https://github.com/github/gitignore/blob/master/Unity.gitignore
 #
-/[Ll]ibrary/
-/[Tt]emp/
-/[Oo]bj/
-/[Bb]uild/
-/[Bb]uilds/
-/[Ll]ogs/
-/[Mm]emoryCaptures/
+Space Horror Game/[Ll]ibrary/
+Space Horror Game/[Tt]emp/
+Space Horror Game/[Oo]bj/
+Space Horror Game/[Bb]uild/
+Space Horror Game/[Bb]uilds/
+Space Horror Game/[Ll]ogs/
+Space Horror Game/[Mm]emoryCaptures/
 
 # Asset meta data should only be ignored when the corresponding asset is also ignored
 !/[Aa]ssets/**/*.meta
@@ -58,3 +58,6 @@ sysinfo.txt
 # Crashlytics generated file
 crashlytics-build.properties
 
+Space Horror Game/Packages/manifest.json
+Space Horror Game/Packages/packages-lock.json
+Space Horror Game/UserSettings/EditorUserSettings.asset
