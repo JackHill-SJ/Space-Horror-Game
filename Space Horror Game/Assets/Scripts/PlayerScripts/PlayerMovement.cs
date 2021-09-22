@@ -16,6 +16,7 @@ public class PlayerMovement : MonoBehaviour
     int currentStamina; //current calculataed amount of stamina player has
     int staminaRate = 1; //Rate at which the stamina will increase or decrease
     bool staminaDepleted = false; //Bool to know if stamina is at zero
+    bool staminaFull = true; //Bool for when the stamina is at max
 
     public GroundCheck groundCheck;
 
@@ -62,8 +63,11 @@ public class PlayerMovement : MonoBehaviour
         {
             //Walking speed so it doesn't add anything extra, increases stamina if not already maxed(done in coroutine)
             Direction *= speed * Time.fixedDeltaTime;
+            if (!staminaFull)
+            {
+                StartCoroutine(IncreaseStamina(staminaRate));
+            }
 
-            StartCoroutine(IncreaseStamina(staminaRate));
         }
 
         rb.MovePosition(transform.position + (Direction));
@@ -80,6 +84,7 @@ public class PlayerMovement : MonoBehaviour
         }
         else
         {
+            staminaFull = false;
             staminaDepleted = false;
             currentStamina -= depletionAmount;
         }
@@ -88,16 +93,21 @@ public class PlayerMovement : MonoBehaviour
     IEnumerator IncreaseStamina(int increaseAmount)
     {
         //Want it to wait a couple seconds if player hits 0 for their stamina. Then it goes into the else to start going back up
-        if (currentStamina <= 0)
+        if (currentStamina <= 0 && !staminaFull)
         {
             staminaDepleted = true;
-            yield return new WaitForSeconds(2f);
-            currentStamina = currentStamina + 1; //to push it out of the if statment to the else
+            yield return new WaitForSeconds(5f);
+            currentStamina = currentStamina + 1; //to push it out of the if statment to the else if
         }
-        else if (currentStamina <= maxStamina)
+        else if (currentStamina <= maxStamina && !staminaFull)
         {
             staminaDepleted = false;
+            yield return new WaitForSeconds(3f);
             currentStamina += increaseAmount;
+        }
+        else if (currentStamina >= maxStamina)
+        {
+            staminaFull = true;
         }
     }
 
