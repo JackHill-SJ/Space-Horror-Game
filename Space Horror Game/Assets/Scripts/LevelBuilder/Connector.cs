@@ -6,7 +6,6 @@ public class Connector : MonoBehaviour
 {
     public ConnectDirection direction;
 
-
     public enum ConnectDirection
     {
         North,

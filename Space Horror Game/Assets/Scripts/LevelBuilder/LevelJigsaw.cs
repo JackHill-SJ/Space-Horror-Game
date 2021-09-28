@@ -21,6 +21,8 @@ public class LevelJigsaw : MonoBehaviour
 
     [Header("Ran Gen: Debug Settings")]
     public int useSeed;
+    //Placed here for now, will remove once working fully
+    public List<RoomBounds> rooms; 
     public bool randomSeed;
     System.Random prng;
 
@@ -56,6 +58,7 @@ public class LevelJigsaw : MonoBehaviour
     {
         //Start the random Seed Generator
         prng = new System.Random(seed);
+        rooms = new List<RoomBounds>();
 
         //If we don't have a list, make one. If we do, destroy the rooms and clear the list
         if (roomsBuilt == null)
@@ -82,6 +85,8 @@ public class LevelJigsaw : MonoBehaviour
         }
 
         roomsBuilt.Add(newRoom.GetComponent<Room>());
+        //Vector2.zero since this is the first room
+        rooms.Add(new RoomBounds(roomsBuilt[0].roomMesh, Vector2.zero));
 
         int maxCount = 100, totalTries = 0, p = 1;
 
@@ -90,6 +95,9 @@ public class LevelJigsaw : MonoBehaviour
         {
             totalTries++;
             GameObject nextRoom;
+            bool placingRoom = true; //it is either a room or a path
+
+            if (exits.Count == 0) break; //Can't add rooms if there is nowhere to add them
 
             //If there is only 1 more path, we need to build a new pathway.
             if (exits.Count < 2 && i < minRooms)
@@ -98,19 +106,19 @@ public class LevelJigsaw : MonoBehaviour
                 nextRoom.name = "Pathway " + p.ToString();
                 --i;
                 ++p;
+                placingRoom = false;
             }
-            else if (exits.Count == 0) break;
+            
             else
             {
                 nextRoom = Instantiate(roomPool[prng.Next(roomPool.Count)]);
                 nextRoom.name = "Room " + i.ToString();
-            }
-            
+            }            
 
             nextRoom.transform.SetParent(transform);
             
             Room getData = nextRoom.GetComponent<Room>();
-
+            
             int baseDir = prng.Next(exits.Count);
             int enterDir = prng.Next(getData.exits.Count);
             int rot = 0, cur = (int)getData.exits[enterDir].direction;
@@ -128,17 +136,42 @@ public class LevelJigsaw : MonoBehaviour
             placePoint -= getData.exits[enterDir].transform.position;
 
             nextRoom.transform.position = placePoint;
+            RoomBounds roomBounds = new RoomBounds(getData.roomMesh, placePoint);
 
-            exits.RemoveAt(baseDir);
+            bool canPlace = true;
 
-            for(int a = 0; a < getData.exits.Count; ++a)
+            //Check the pre-existing room boundaries
+            foreach(RoomBounds testRoom in rooms)
             {
-                if(enterDir != a)
+                if(testRoom.WithinBounds(roomBounds))
                 {
-                    exits.Add(getData.exits[a]);
+                    canPlace = false;
+                    break; //Don't need to keep going if this happens
                 }
             }
-            roomsBuilt.Add(getData);
+
+            //We still want to remove this exit point, as it will keep using it even if
+            //we can't use it, and may cause an infinite loop
+            exits.RemoveAt(baseDir);
+
+            if (canPlace)
+            {
+                for (int a = 0; a < getData.exits.Count; ++a)
+                {
+                    if (enterDir != a)
+                    {
+                        exits.Add(getData.exits[a]);
+                    }
+                }
+                roomsBuilt.Add(getData);
+                rooms.Add(roomBounds);
+            }
+            else
+            {
+                Destroy(nextRoom);
+                if (placingRoom) --i; //If a room didn't place, then remove it from the total rooms count
+                
+            }
         }
     }
 }

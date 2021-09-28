@@ -14,6 +14,8 @@ public class Room : MonoBehaviour
     public bool winRoom;
     //Is this piece a potential start point
     public bool startRoom;
+    //Needed for room boundaries
+    public Mesh roomMesh;
 
     public void UsedExit(Connector.ConnectDirection exitDirection)
     {
