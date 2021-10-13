@@ -9,15 +9,19 @@ public class EnemyAI : MonoBehaviour
 
     public Transform player;
 
-    public LayerMask whatIsGround;
+    [SerializeField]
+    private LayerMask whatIsGround;
+
+    bool PlayerInSight;
 
     //Patroling
-    public Vector3 walkPoint;
+    private Vector3 walkPoint;
     bool walkPointSet;
     public float walkPointRange;
 
-    public float sightRange, attackRange;
-    public bool playerInSightRange, playerInAttackRange;
+    [SerializeField]
+    private float hearingRange, sightRange, attackRange;
+    private bool playerInHearingRange, playerInSightRange, playerInAttackRange;
 
     private void Awake()
     {
@@ -26,14 +30,21 @@ public class EnemyAI : MonoBehaviour
 
     private void Update()
     {
+        LineOfSightRaycast();
+
         //Check for sight/distance from the player
-        if (Vector3.Distance(transform.position,player.position) <= sightRange)
+        if (Vector3.Distance(transform.position,player.position) <= hearingRange)
         {
-            playerInSightRange = true;
+            playerInHearingRange = true;
         }
         else
         {
-            playerInSightRange = false;
+            playerInHearingRange = false;
+        }
+
+        if (PlayerInSight)
+        {
+            playerInSightRange = true;
         }
 
         //Check if distance to the player is close enough to attack
@@ -46,9 +57,9 @@ public class EnemyAI : MonoBehaviour
             playerInAttackRange = false;
         }
 
-        if (!playerInSightRange && !playerInAttackRange) Patroling();
-        if (playerInSightRange && !playerInAttackRange) ChasePlayer();
-        if (playerInSightRange && playerInAttackRange) AttackPlayer();
+        if (!playerInHearingRange && !playerInAttackRange) Patroling();
+        if (playerInHearingRange || playerInSightRange && !playerInAttackRange) ChasePlayer();
+        if (playerInHearingRange && playerInAttackRange) AttackPlayer();
     }
 
     private void Patroling()
@@ -79,7 +90,16 @@ public class EnemyAI : MonoBehaviour
     }
     private void ChasePlayer()
     {
-        agent.SetDestination(player.position);
+        if (PlayerInSight)
+        {
+            agent.SetDestination(player.position);
+        }
+        else if(!PlayerInSight && playerInHearingRange)
+        {
+            Vector3 lastPlayerLocation = player.position;
+            transform.LookAt(player);
+            agent.SetDestination(lastPlayerLocation);
+        }
     }
     private void AttackPlayer()
     {
@@ -89,5 +109,23 @@ public class EnemyAI : MonoBehaviour
         transform.LookAt(player);
 
         //Enemy does animation to attack. game ends.
+    }
+
+    private void LineOfSightRaycast()
+    {
+        Debug.DrawRay(transform.position, transform.forward * sightRange, Color.red);
+        Ray ray = new Ray(transform.position, transform.forward);
+
+        if (Physics.Raycast(ray, out RaycastHit raycastHit, sightRange))
+        {
+            if (raycastHit.collider.name == "Player")
+            {
+                PlayerInSight = true;
+            }
+            else
+            {
+                PlayerInSight = false;
+            }
+        }
     }
 }
