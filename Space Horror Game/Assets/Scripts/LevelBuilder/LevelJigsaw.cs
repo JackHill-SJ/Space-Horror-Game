@@ -1,11 +1,16 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Unity.AI.Navigation;
 
 public class LevelJigsaw : MonoBehaviour
 {
     //Static reference to the Level Builder for other classes/functions to call
     public static LevelJigsaw Builder { get; private set; }
+
+    //For new Nav Mesh Builder for prefabs
+    [SerializeField]
+    List<NavMeshSurface> navMeshSurfaces;
 
     //A list of all possible rooms/pathways to choose from
     public List<GameObject> roomPool;
@@ -59,6 +64,7 @@ public class LevelJigsaw : MonoBehaviour
         //Start the random Seed Generator
         prng = new System.Random(seed);
         rooms = new List<RoomBounds>();
+        navMeshSurfaces = new List<NavMeshSurface>();
 
         //If we don't have a list, make one. If we do, destroy the rooms and clear the list
         if (roomsBuilt == null)
@@ -83,6 +89,9 @@ public class LevelJigsaw : MonoBehaviour
         {
             exits.Add(newRoomExit);
         }
+
+        //Add room nav mesh surface
+        navMeshSurfaces.Add(newRoom.GetComponent<NavMeshSurface>());
 
         roomsBuilt.Add(newRoom.GetComponent<Room>());
         //Vector2.zero since this is the first room
@@ -117,11 +126,11 @@ public class LevelJigsaw : MonoBehaviour
 
             nextRoom.transform.SetParent(transform);
             
-            Room getData = nextRoom.GetComponent<Room>();
+            Room getRoomData = nextRoom.GetComponent<Room>();
             
             int baseDir = prng.Next(exits.Count);
-            int enterDir = prng.Next(getData.exits.Count);
-            int rot = 0, cur = (int)getData.exits[enterDir].direction;
+            int enterDir = prng.Next(getRoomData.exits.Count);
+            int rot = 0, cur = (int)getRoomData.exits[enterDir].direction;
 
             Vector3 placePoint = exits[baseDir].transform.position;
 
@@ -131,12 +140,12 @@ public class LevelJigsaw : MonoBehaviour
                 cur = (cur + 1) % 4;
             }
 
-            getData.RotateRoomClockwise(rot);
+            getRoomData.RotateRoomClockwise(rot);
 
-            placePoint -= getData.exits[enterDir].transform.position;
+            placePoint -= getRoomData.exits[enterDir].transform.position;
 
             nextRoom.transform.position = placePoint;
-            RoomBounds roomBounds = new RoomBounds(getData.roomMesh, placePoint);
+            RoomBounds roomBounds = new RoomBounds(getRoomData.roomMesh, placePoint);
 
             bool canPlace = true;
 
@@ -156,15 +165,18 @@ public class LevelJigsaw : MonoBehaviour
 
             if (canPlace)
             {
-                for (int a = 0; a < getData.exits.Count; ++a)
+                for (int a = 0; a < getRoomData.exits.Count; ++a)
                 {
                     if (enterDir != a)
                     {
-                        exits.Add(getData.exits[a]);
+                        exits.Add(getRoomData.exits[a]);
                     }
                 }
-                roomsBuilt.Add(getData);
+                roomsBuilt.Add(getRoomData);
                 rooms.Add(roomBounds);
+
+                //Add room nav mesh surface
+                navMeshSurfaces.Add(getRoomData.GetComponent<NavMeshSurface>());
             }
             else
             {
@@ -172,6 +184,12 @@ public class LevelJigsaw : MonoBehaviour
                 if (placingRoom) --i; //If a room didn't place, then remove it from the total rooms count
                 
             }
+        }
+
+        //Once rooms are completed, build the nav mesh components
+        for (int i = 0; i < navMeshSurfaces.Count; ++i)
+        {
+            navMeshSurfaces[i].BuildNavMesh();
         }
     }
 }
