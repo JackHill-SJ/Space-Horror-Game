@@ -15,14 +15,20 @@ public class LevelJigsaw : MonoBehaviour
     //A list of all possible rooms/pathways to choose from
     public List<GameObject> roomPool;
     public List<GameObject> pathPool;
+    public List<GameObject> doors;
 
     //May make a dictionary later, this is the rooms already built
     [SerializeField] List<Room> roomsBuilt;
+    [SerializeField] List<GameObject> doorsBuilt;
     [SerializeField] List<Connector> exits;
 
     //Total Rooms possible Max
     public int minRooms;
     public int maxRooms;
+    public bool addDoors;
+    [Range(0f, 1f)]
+    public float extraHallChance = 0.45f;
+    public bool rebuildNavData;
 
     [Header("Ran Gen: Debug Settings")]
     public int useSeed;
@@ -49,6 +55,15 @@ public class LevelJigsaw : MonoBehaviour
         NewLevel();
     }
 
+    void Update()
+    {
+        if(rebuildNavData)
+        {
+            RebuildNavMesh();
+            rebuildNavData = false;
+        }
+    }
+
     public void NewLevel()
     {
         if(randomSeed)
@@ -57,6 +72,17 @@ public class LevelJigsaw : MonoBehaviour
         }
 
         NewLevel(useSeed);
+    }
+
+    /// <summary>
+    ///  This is used when a door opens or closes, so that the "enemy" can move between rooms properly.
+    /// </summary>
+    public void RebuildNavMesh()
+    {
+        for (int i = 0; i < navMeshSurfaces.Count; ++i)
+        {
+            navMeshSurfaces[i].BuildNavMesh();
+        }
     }
 
     public void NewLevel(int seed)
@@ -80,6 +106,21 @@ public class LevelJigsaw : MonoBehaviour
             roomsBuilt.Clear();
         }
 
+        //Clear the doors if this is a new level
+        if(doorsBuilt == null)
+        {
+            doorsBuilt = new List<GameObject>();
+        }
+        else
+        {
+            foreach (GameObject removeDoor in doorsBuilt)
+            {
+                Destroy(removeDoor);
+            }
+
+            roomsBuilt.Clear();
+        }
+
         //Add the initial room
         GameObject newRoom = Instantiate(roomPool[prng.Next(roomPool.Count)]);
         newRoom.name = "Start Room";
@@ -97,7 +138,7 @@ public class LevelJigsaw : MonoBehaviour
         //Vector2.zero since this is the first room
         rooms.Add(new RoomBounds(roomsBuilt[0].roomMesh, Vector2.zero));
 
-        int maxCount = 100, totalTries = 0, p = 1;
+        int maxCount = 100, totalTries = 0, p = 1;        
 
         //Start Creating rooms
         for(int i = 0; i < maxRooms && totalTries < maxCount; ++i)
@@ -108,8 +149,9 @@ public class LevelJigsaw : MonoBehaviour
 
             if (exits.Count == 0) break; //Can't add rooms if there is nowhere to add them
 
-            //If there is only 1 more path, we need to build a new pathway.
-            if (exits.Count < 2 && i < minRooms)
+            // If there is only 1 more path, we need to build a new pathway.
+            // Also, 45 percent chance to build a hall instead of a room
+            if ((exits.Count < 2 && i < minRooms) || prng.Next(101) / 100f < extraHallChance)
             {
                 nextRoom = Instantiate(pathPool[prng.Next(pathPool.Count)]);
                 nextRoom.name = "Pathway " + p.ToString();
@@ -159,6 +201,18 @@ public class LevelJigsaw : MonoBehaviour
                 }
             }
 
+            if ((canPlace && addDoors) ||(!canPlace))
+            {
+                if (addDoors)
+                {
+                    GameObject newDoor = Instantiate(doors[0],
+                        exits[baseDir].transform.position,
+                        ((int)exits[baseDir].direction % 2 == 0) ? Quaternion.identity : Quaternion.Euler(0f, 90f, 0f),
+                        transform);
+                    doorsBuilt.Add(newDoor);
+                }
+            }
+
             //We still want to remove this exit point, as it will keep using it even if
             //we can't use it, and may cause an infinite loop
             exits.RemoveAt(baseDir);
@@ -186,10 +240,18 @@ public class LevelJigsaw : MonoBehaviour
             }
         }
 
-        //Once rooms are completed, build the nav mesh components
-        for (int i = 0; i < navMeshSurfaces.Count; ++i)
+        //If we reached the max rooms but still have opennings
+        while (exits.Count > 0)
         {
-            navMeshSurfaces[i].BuildNavMesh();
+            GameObject newDoor = Instantiate(doors[0],
+                        exits[0].transform.position,
+                        ((int)exits[0].direction % 2 == 0) ? Quaternion.identity : Quaternion.Euler(0f, 90f, 0f),
+                        transform);
+            doorsBuilt.Add(newDoor);
+            exits.RemoveAt(0);
         }
+
+        //Once rooms are completed, build the nav mesh components
+        RebuildNavMesh();
     }
 }
