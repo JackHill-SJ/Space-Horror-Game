@@ -7,7 +7,7 @@ namespace Interaction
 {
     public class PlayerInteraction : MonoBehaviour
     {
-        public enum ObjectType { Door, Light, Collectable, Tool, Item }
+        public enum ObjectType { Door, Light, Collectable, Tool, Item, Portal }
         public static Action<Interactable, bool> OnTouchInteractable;
         public static Action<Interactable> OnInteract;
 
@@ -16,6 +16,7 @@ namespace Interaction
         Interactable i;
         bool canInteract;
         bool disabled = false;
+
 
         private void Awake()
         {
@@ -49,10 +50,15 @@ namespace Interaction
                 case ObjectType.Light:
                     break;
                 case ObjectType.Collectable:
+                    Inventory.Instance.AddItemToInventory(interactable.gameObject);
+                    //Console.Log($"{interactable.gameObject}");
                     break;
                 case ObjectType.Tool:
                     break;
                 case ObjectType.Item:
+                    break;
+                case ObjectType.Portal:
+                    Inventory.Instance.PlaceItemFromInventory(interactable.gameObject);
                     break;
                 default:
                     Console.Log($"Interaction with {interactable.ObjectType} is not implemented yet.");
