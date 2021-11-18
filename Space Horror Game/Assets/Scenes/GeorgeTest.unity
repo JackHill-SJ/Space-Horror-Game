@@ -355,7 +355,7 @@ MonoBehaviour:
   exits: []
   minRooms: 5
   maxRooms: 10
-  addDoors: 0
+  addDoors: 1
   extraHallChance: 0.45
   rebuildNavData: 0
   useSeed: 0
