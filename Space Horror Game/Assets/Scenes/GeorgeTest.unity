@@ -345,6 +345,12 @@ MonoBehaviour:
   navMeshSurfaces: []
   roomPool:
   - {fileID: 8459639511568466395, guid: 9569fe8ef5e8f70469fa32139a613d4a, type: 3}
+  - {fileID: 8459639511568466395, guid: 9474f3593b5db6d478ba0c6c33c4bda2, type: 3}
+  - {fileID: 8459639511568466395, guid: 3ba6813e87929f6469782b777d60f392, type: 3}
+  - {fileID: 8459639511568466395, guid: c82197b3ce51a6746b0cacfa98185fa8, type: 3}
+  - {fileID: 8459639511568466395, guid: 411dc692c97aad94ca6dc86ce83f5972, type: 3}
+  - {fileID: 8459639511568466395, guid: b93513183869ec749a33534b064c9c93, type: 3}
+  - {fileID: 8459639511568466395, guid: 5368dda530b492f46a5bb2fcac8fbbf6, type: 3}
   pathPool:
   - {fileID: 8888752077027735098, guid: 134d9a31daf42dd42b9d471b9b25455c, type: 3}
   - {fileID: 3518894924160661146, guid: 2548c5032089ce541828bd76812631e0, type: 3}
@@ -355,6 +361,7 @@ MonoBehaviour:
   exits: []
   minRooms: 5
   maxRooms: 10
+  requiredUniqueRooms: 2
   addDoors: 1
   extraHallChance: 0.45
   rebuildNavData: 0

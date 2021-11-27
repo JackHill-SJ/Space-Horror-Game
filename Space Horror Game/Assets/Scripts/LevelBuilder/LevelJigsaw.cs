@@ -25,6 +25,7 @@ public class LevelJigsaw : MonoBehaviour
     //Total Rooms possible Max
     public int minRooms;
     public int maxRooms;
+    public int requiredUniqueRooms;
     public bool addDoors;
     [Range(0f, 1f)]
     public float extraHallChance = 0.45f;
@@ -87,12 +88,42 @@ public class LevelJigsaw : MonoBehaviour
 
     public void NewLevel(int seed)
     {
-        //Start the random Seed Generator
+        // Start the random Seed Generator
         prng = new System.Random(seed);
         rooms = new List<RoomBounds>();
         navMeshSurfaces = new List<NavMeshSurface>();
 
-        //If we don't have a list, make one. If we do, destroy the rooms and clear the list
+        // Check for unique rooms and starting room(s), adding them to a list
+        List<GameObject> startPool = new List<GameObject>();
+        List<GameObject> uniquePool = new List<GameObject>();
+        List<GameObject> genericPool = new List<GameObject>();
+        int uniqueRoomCount = 0;
+
+        foreach (GameObject roomList in roomPool)
+        {
+            Room roomCheck = roomList.GetComponent<Room>();
+            //In case a room forgot to add the Room component
+            if (roomCheck != null)
+            {
+                if (roomCheck.startRoom)
+                {
+                    // Pool of start rooms. A random one will be chosen if multiple start rooms are in the pool
+                    startPool.Add(roomList); 
+                }
+                else if (roomCheck.isUnique)
+                {
+                    // Unique rooms, such as puzzle rooms or orb locations
+                    uniquePool.Add(roomList);
+                }
+                else
+                {
+                    // All other rooms
+                    genericPool.Add(roomList);
+                }
+            }
+        }
+
+        // If we don't have a list, make one. If we do, destroy the rooms and clear the list
         if (roomsBuilt == null)
         {
             roomsBuilt = new List<Room>();
@@ -106,7 +137,7 @@ public class LevelJigsaw : MonoBehaviour
             roomsBuilt.Clear();
         }
 
-        //Clear the doors if this is a new level
+        // Clear the doors if this is a new level
         if(doorsBuilt == null)
         {
             doorsBuilt = new List<GameObject>();
@@ -122,7 +153,28 @@ public class LevelJigsaw : MonoBehaviour
         }
 
         //Add the initial room
-        GameObject newRoom = Instantiate(roomPool[prng.Next(roomPool.Count)]);
+        GameObject useRoom;
+
+        // If there is a start room pool, choose one of the start rooms first
+        if(startPool.Count > 0)
+        {
+            useRoom = startPool[prng.Next(startPool.Count)];
+        }
+        // If not, and we have a required number of unique rooms, use a unique room
+        else if (uniquePool.Count > 0 && requiredUniqueRooms > 0)
+        {
+            useRoom = uniquePool[prng.Next(uniquePool.Count)];
+            // Remove the unique room from the pool
+            uniquePool.Remove(useRoom);
+            uniqueRoomCount++;
+        }
+        // Otherwise, just choose a random room.
+        else
+        {
+            useRoom = genericPool[prng.Next(genericPool.Count)];
+        }
+        // Add the room
+        GameObject newRoom = Instantiate(useRoom);
         newRoom.name = "Start Room";
         newRoom.transform.SetParent(transform);
         exits = new List<Connector>();
@@ -131,11 +183,11 @@ public class LevelJigsaw : MonoBehaviour
             exits.Add(newRoomExit);
         }
 
-        //Add room nav mesh surface
+        // Add room nav mesh surface
         navMeshSurfaces.Add(newRoom.GetComponent<NavMeshSurface>());
 
         roomsBuilt.Add(newRoom.GetComponent<Room>());
-        //Vector2.zero since this is the first room
+        // Vector2.zero since this is the first room
         rooms.Add(new RoomBounds(roomsBuilt[0].roomMesh, Vector2.zero));
 
         int maxCount = 100, totalTries = 0, p = 1;        
@@ -158,11 +210,24 @@ public class LevelJigsaw : MonoBehaviour
                 --i;
                 ++p;
                 placingRoom = false;
-            }
-            
+            }            
             else
             {
-                nextRoom = Instantiate(roomPool[prng.Next(roomPool.Count)]);
+                GameObject roomChoice;
+
+                if (uniquePool.Count > 0 && requiredUniqueRooms > uniqueRoomCount)
+                {
+                    roomChoice = uniquePool[prng.Next(uniquePool.Count)];
+                    // Remove the unique room from the pool
+                    uniquePool.Remove(roomChoice);
+                    uniqueRoomCount++;
+                }
+                else
+                {
+                    roomChoice = genericPool[prng.Next(genericPool.Count)];
+                }
+
+                nextRoom = Instantiate(roomChoice);
                 nextRoom.name = "Room " + i.ToString();
             }            
 
